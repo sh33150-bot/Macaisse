@@ -4,134 +4,401 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Ma Caisse">
-<meta name="theme-color" content="#0d0f14">
+<meta name="theme-color" content="#ffffff">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <title>Ma Caisse</title>
 <style>
-:root{--bg:#0d0f14;--card:#171a22;--txt:#f2f4f8;--mut:#8b93a7;--acc:#ff5a1f;--ok:#2ecc71}
+:root{--ink:#0b0b0b;--green:#7dff9b;--yellow:#e4f24f;--blue:#3550e8;--orange:#f4cf5a;--pink:#e0546f;--cyan:#7eeee6;--bg:#fff;--mut:#6b6f7a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,system-ui,sans-serif;min-height:100vh;padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16px);display:flex;flex-direction:column;gap:14px}
-h1{font-size:22px;margin:18px 0 0}
-.card{background:var(--card);border-radius:20px;padding:18px}
-.mut{color:var(--mut);font-size:14px}
-.big{width:100%;border:0;border-radius:22px;padding:26px 16px;font-size:22px;font-weight:700;color:#fff;background:var(--acc)}
-.big:active{transform:scale(.98)}
-.go{background:var(--ok);color:#06210f}
-.sec{width:100%;border:1px solid #2a2f3d;background:transparent;color:var(--txt);border-radius:14px;padding:14px;font-size:16px;margin-top:10px}
-input{width:100%;padding:14px;border-radius:12px;border:1px solid #2a2f3d;background:#0d0f14;color:var(--txt);font-size:16px;margin-top:8px}
-.hide{display:none}
-#pos{font-size:18px;font-weight:600}
-code{background:#0d0f14;padding:3px 8px;border-radius:8px;font-size:15px;user-select:all}
-#tkclock{font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;margin:8px 0}
-.warn{color:#ffb020}.bad{color:#ff5a5a}
-#tkbanner{background:#ffb020;color:#201400;border-radius:14px;padding:14px;font-weight:700;text-align:center}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;font-weight:700}
+.h{font-family:'Anton',Impact,'Arial Narrow',sans-serif;font-weight:400;text-transform:uppercase;line-height:1;letter-spacing:.2px}
+.hide{display:none!important}
+.mut{color:var(--mut);font-size:14px;font-weight:600}
+.screen{min-height:100vh}
+.full{position:fixed;inset:0;overflow:auto;padding:calc(env(safe-area-inset-top) + 12px) 18px calc(env(safe-area-inset-bottom) + 24px);z-index:50}
+.back{border:0;background:rgba(0,0,0,.85);color:#fff;width:46px;height:46px;border-radius:50%;font-size:22px;font-weight:800}
+.topbar{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.topbar .h{font-size:30px}
+input,textarea{width:100%;padding:15px;border-radius:16px;border:2.5px solid var(--ink);background:#fff;color:var(--ink);font-size:17px;font-weight:700;font-family:inherit;margin-top:8px}
+textarea{min-height:130px;resize:none;background:#f3f4f6;border-color:#f3f4f6}
+.btn{display:block;width:100%;border:0;border-radius:999px;background:var(--ink);color:#fff;padding:18px;font-size:18px;font-weight:800;margin-top:12px;font-family:inherit}
+.btn.alt{background:#fff;color:var(--ink);border:2.5px solid var(--ink)}
+.btn.blue{background:var(--blue)}
+#setup{padding:calc(env(safe-area-inset-top) + 28px) 20px 40px}
+#setup .h{font-size:48px;margin-bottom:18px}
+#map{height:40vh;width:100%;background:#e8e6df}
+#sheet{position:relative;margin-top:-26px;background:#fff;border-radius:30px 30px 0 0;padding:16px 14px calc(env(safe-area-inset-bottom) + 24px);box-shadow:0 -6px 24px rgba(0,0,0,.12);z-index:5}
+.hero{font-size:34px;margin:2px 4px 12px}
+#park{display:block;width:100%;border:0;border-radius:26px;background:var(--ink);color:var(--green);padding:22px;font-size:30px;margin-bottom:12px}
+#park:active,.tile:active{transform:scale(.97)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{border:0;border-radius:28px;padding:16px;min-height:150px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;font-family:inherit;color:var(--ink);font-weight:800;position:relative}
+.tile .k{font-size:15px;opacity:.75;font-weight:700}
+.tile .t{font-size:24px;line-height:1.05}
+.tile .ar{position:absolute;right:16px;top:14px;font-size:24px}
+.tile .pill{background:var(--ink);border-radius:999px;height:46px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff}
+.tile.green{background:var(--green)}.tile.yellow{background:var(--yellow)}.tile.blue{background:var(--blue);color:#fff}
+.tile.orange{background:var(--orange)}.tile.pink{background:var(--pink);color:#fff}.tile.cyan{background:var(--cyan)}
+.tile.line{background:#fff;border:2.5px solid var(--ink)}
+#banner{border-radius:20px;padding:14px;text-align:center;background:var(--orange);margin-bottom:12px;font-size:17px}
+#banner.bad{background:var(--pink);color:#fff}
+.ico{font-size:34px}
+/* radar */
+#radar{background:var(--green)}
+.rrow{display:flex;justify-content:space-between;font-size:14px;font-weight:800;gap:10px}
+#rsvg{width:100%;max-width:420px;display:block;margin:18px auto}
+.rbot{display:flex;justify-content:space-between;align-items:flex-end}
+#rdist{font-size:46px}
+/* photo */
+#pimg{width:100%;max-height:48vh;object-fit:cover;border-radius:22px;background:#e5e7eb;display:block}
+/* minuterie */
+#timer{background:#0d0d10;color:#fff}
+#timer input{background:#1b1b22;border-color:#2c2c36;color:#fff}
+#tkclock{font-family:'Anton',Impact,sans-serif;font-weight:400;font-size:64px;line-height:1.05;margin:26px 0 6px;font-variant-numeric:tabular-nums;text-align:center}
+#tkclock.warn{color:#ffb020}#tkclock.bad{color:#ff5a6a}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.quick button{border:0;border-radius:14px;background:#2c2c36;color:#fff;padding:12px 0;font-size:15px;font-weight:800}
+#timer .btn.alt{background:transparent;color:#fff;border-color:#fff}
+#timer .btn{background:var(--cyan);color:var(--ink)}
+.row{background:#f3f4f6;border-radius:18px;padding:14px;margin-top:10px;display:block;width:100%;text-align:left;border:0;font-family:inherit;color:var(--ink);font-weight:700;font-size:16px}
+code{background:#f3f4f6;padding:4px 10px;border-radius:10px;font-size:17px;user-select:all}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 18px);background:var(--ink);color:#fff;border-radius:16px;padding:14px;text-align:center;z-index:99}
+.pin{background:var(--ink);color:#fff;font:400 22px 'Anton',Impact,sans-serif;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 </style>
 </head>
 <body>
-<h1>🚗 Ma Caisse</h1>
 
-<div id="setup" class="card hide">
-  <b>Première configuration</b>
-  <p class="mut">Ton prénom (affiché à l'autre) :</p>
+<!-- CONFIG -->
+<div id="setup" class="screen hide">
+  <div class="h">Ma Caisse</div>
+  <div class="mut">Ton prénom (affiché à l'autre) :</div>
   <input id="name" placeholder="Stéphane" autocomplete="off">
-  <button class="sec" id="create">Créer le partage (1er téléphone)</button>
+  <button class="btn" id="create">Créer le partage (1er téléphone)</button>
   <p class="mut">Ou, si ton pote a déjà créé le partage, entre son code :</p>
   <input id="code" placeholder="Code de partage" autocomplete="off" autocapitalize="off">
-  <button class="sec" id="join">Rejoindre avec ce code</button>
-  <p class="mut" id="err" style="color:#ff7a7a"></p>
+  <button class="btn alt" id="join">Rejoindre avec ce code</button>
+  <p class="mut" id="err" style="color:#d33"></p>
 </div>
 
-<div id="main" class="hide">
-  <button class="big" id="park">📍 Je me gare ici</button>
-  <div class="card" style="margin-top:14px">
-    <div class="mut">Dernière position enregistrée</div>
-    <div id="pos">Aucune pour l'instant</div>
-    <div class="mut" id="meta"></div>
-  </div>
-  <button class="big go hide" id="go">🧭 Y aller (itinéraire)</button>
-  <div id="tkbanner" class="hide">⚠️ Plus que 10 minutes sur le ticket !</div>
-  <div class="card hide" id="tkcard">
-    <b>🅿️ Parcmètre</b>
-    <div id="tkform">
-      <p class="mut">Ticket pris le (date et heure) :</p>
-      <input type="datetime-local" id="tkstart">
-      <p class="mut">Valable jusqu'à (heure) :</p>
-      <input type="time" id="tkend">
-      <button class="sec" id="tkgo">⏱ Lancer le compte à rebours</button>
+<!-- ACCUEIL -->
+<div id="home" class="screen hide">
+  <div id="map"></div>
+  <div id="sheet">
+    <div class="h hero" id="hero">Gare-toi. Retrouve-la.</div>
+    <div id="banner" class="hide"></div>
+    <button id="park" class="h">📍 Je me gare ici</button>
+    <div class="grid">
+      <button class="tile green" id="tRadar"><span class="k">Radar</span><span class="t">Trouver ma voiture</span><span class="ar">→</span><span class="pill">📡</span></button>
+      <button class="tile yellow" id="tUnpark"><span class="ico">🚗</span><span class="t">Je reprends la voiture</span></button>
+      <button class="tile blue" id="tPhoto"><span class="ar">→</span><span class="ico">📷</span><span class="t">Photo et notes</span></button>
+      <button class="tile orange" id="tGo"><span class="k">Itinéraire à pied</span><span class="t">Aller à la voiture</span><span class="ar">→</span><span class="pill">🧭</span></button>
+      <button class="tile pink" id="tShare"><span class="ico">📤</span><span class="t">Partager l'emplacement</span></button>
+      <button class="tile cyan" id="tTimer"><span class="ar">→</span><span class="ico">⏱️</span><span class="t" id="tTimerTxt">Parcmètre &amp; alarme</span></button>
+      <button class="tile line" id="tHist"><span class="ico">🕘</span><span class="t">Historique</span></button>
+      <button class="tile line" id="tSet"><span class="ico">⚙️</span><span class="t">Réglages</span></button>
     </div>
-    <div id="tkrun" class="hide">
-      <div id="tkclock">--:--:--</div>
-      <div class="mut" id="tkinfo"></div>
-      <button class="sec" id="tkcal">🔔 Ajouter l'alarme (10 min avant) au calendrier</button>
-      <button class="sec" id="tkdel">Supprimer le ticket</button>
-    </div>
-  </div>
-  <div class="card">
-    <div class="mut">Code de partage à donner à ton pote :</div>
-    <p><code id="mycode"></code></p>
-    <button class="sec" id="reset">Réinitialiser l'appli</button>
   </div>
 </div>
 
+<!-- RADAR -->
+<div id="radar" class="screen full hide">
+  <div class="topbar"><button class="back" data-back>←</button><div class="h">Radar</div></div>
+  <div class="rrow"><div><div id="rdate">--</div><div id="rdir">Direction : --</div></div><div style="text-align:right"><div id="rcoord">--</div><div id="ralt">Altitude : --</div></div></div>
+  <svg id="rsvg" viewBox="0 0 300 300">
+    <g fill="none" stroke="#0b0b0b" stroke-width="5"><circle cx="150" cy="150" r="42"/><circle cx="150" cy="150" r="78"/><circle cx="150" cy="150" r="114"/><circle cx="150" cy="150" r="144" stroke-dasharray="40 14"/></g>
+    <g id="rarrow"><line id="rline" x1="150" y1="150" x2="150" y2="60" stroke="#3550e8" stroke-width="8" stroke-linecap="round"/><circle id="rdot" cx="150" cy="60" r="17" fill="#3550e8"/><text id="rp" x="150" y="67" text-anchor="middle" font-size="20" font-family="Anton,Impact,sans-serif" fill="#fff">P</text></g>
+    <circle cx="150" cy="150" r="15" fill="#10331a"/>
+  </svg>
+  <div class="mut" id="rnote" style="color:#10331a"></div>
+  <div class="rbot"><div><div class="mut" style="color:#10331a">Distance</div><div class="h" id="rdist">--</div></div><div style="text-align:right"><div>Vitesse : <span id="rspeed">0</span> km/h</div><div>Temps parqué</div><div class="h" style="font-size:34px" id="rpark">--:--:--</div></div></div>
+</div>
+
+<!-- PHOTO & NOTES -->
+<div id="photo" class="screen full hide" style="background:#fff">
+  <div class="topbar"><button class="back" data-back>←</button><div class="h">Photo &amp; remarques</div></div>
+  <img id="pimg" alt="" class="hide">
+  <div id="pnone" class="mut" style="padding:30px 0;text-align:center">Aucune photo pour cette place.</div>
+  <input type="file" id="pfile" accept="image/*" capture="environment" class="hide">
+  <button class="btn alt" id="pbtn">📷 Prendre une photo</button>
+  <textarea id="note" placeholder="Ex : niveau -2, pilier B1, à côté de la sortie…"></textarea>
+  <button class="btn blue" id="nsave">Bien</button>
+</div>
+
+<!-- PARCMETRE -->
+<div id="timer" class="screen full hide">
+  <div class="topbar"><button class="back" data-back style="background:#2c2c36">←</button><div class="h">Parcmètre</div></div>
+  <div id="tkform">
+    <div class="mut">Ticket pris le (date et heure) :</div>
+    <input type="datetime-local" id="tkstart">
+    <div class="mut" style="margin-top:14px">Valable jusqu'à (heure) :</div>
+    <input type="time" id="tkend">
+    <div class="quick"><button data-add="30">+30 min</button><button data-add="60">+1 h</button><button data-add="120">+2 h</button><button data-add="180">+3 h</button></div>
+    <button class="btn" id="tkgo">⏱ Lancer le compte à rebours</button>
+  </div>
+  <div id="tkrun" class="hide">
+    <div id="tkclock">--:--:--</div>
+    <div class="mut" id="tkinfo" style="text-align:center"></div>
+    <button class="btn" id="tkcal">🔔 Alarme 10 min avant (calendrier)</button>
+    <button class="btn alt" id="tkdel">Supprimer le ticket</button>
+  </div>
+</div>
+
+<!-- HISTORIQUE -->
+<div id="hist" class="screen full hide" style="background:#fff">
+  <div class="topbar"><button class="back" data-back>←</button><div class="h">Historique</div></div>
+  <div id="hlist"></div>
+</div>
+
+<!-- REGLAGES -->
+<div id="sets" class="screen full hide" style="background:#fff">
+  <div class="topbar"><button class="back" data-back>←</button><div class="h">Réglages</div></div>
+  <div class="row">Localisation (GPS) : <span id="gps">…</span></div>
+  <div class="row">Prénom : <span id="sname"></span></div>
+  <div class="row"><div class="mut">Code de partage (à donner à ton pote)</div><p><code id="mycode"></code></p></div>
+  <button class="btn alt" id="reset">Réinitialiser l'appli</button>
+</div>
+
+<div id="toast" class="hide"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const DB='https://findmycaisse-default-rtdb.europe-west1.firebasedatabase.app';
-const url=c=>DB+'/s/'+encodeURIComponent(c)+'.json';
 const $=id=>document.getElementById(id);
-const L={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
-let spot=JSON.parse(L.get('spot')||'null');
+const S={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+const J=k=>{try{return JSON.parse(S.get(k)||'null')}catch(e){return null}};
+let spot=J('spot'),photo=J('photo'),luts=Number(S.get('luts')||0);
+const p2=n=>String(n).padStart(2,'0');
+const fb=(c,k)=>DB+'/s/'+encodeURIComponent(c)+'/'+k+'.json';
+const fmtDate=t=>new Date(t).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+const hm=t=>new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+const mapsPin=(s)=>'https://maps.apple.com/?ll='+s.lat+','+s.lon+'&q='+encodeURIComponent('Ma voiture');
 
-function render(){
-  const ready=L.get('code')&&L.get('name');
-  $('setup').classList.toggle('hide',!!ready);
-  $('main').classList.toggle('hide',!ready);
-  if(!ready)return;
-  $('mycode').textContent=L.get('code');
+let tt;function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hide');clearTimeout(tt);tt=setTimeout(()=>t.classList.add('hide'),3500)}
+
+/* ---------- réseau ---------- */
+async function put(k,v){
+  const c=S.get('code');if(!c)return;
+  const r=await fetch(fb(c,k),{method:'PUT',body:JSON.stringify(v)});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+}
+async function push(){try{await put('spot',spot)}catch(e){toast('Enregistré ici, mais envoi à l\'autre échoué ('+e.message+')')}}
+function saveLocal(){S.set('spot',JSON.stringify(spot));luts=Math.max(luts,(spot&&(spot.uts||spot.ts))||0);S.set('luts',String(luts))}
+async function pull(){
+  const c=S.get('code');if(!c)return;
+  try{
+    const r=await fetch(fb(c,'spot'),{cache:'no-store'});if(!r.ok)return;
+    const d=await r.json();
+    if(d&&(d.uts||d.ts)>luts){
+      luts=d.uts||d.ts;S.set('luts',String(luts));
+      if(d.gone){spot=null;photo=null;S.del('spot');S.del('photo')}else{spot=d;S.set('spot',JSON.stringify(d))}
+    }
+    if(spot&&spot.pts&&(!photo||photo.ts!==spot.pts)){
+      const pr=await fetch(fb(c,'photo'),{cache:'no-store'});
+      if(pr.ok){const pd=await pr.json();if(pd&&pd.d){photo=pd;S.set('photo',JSON.stringify(pd))}}
+    }
+    render();
+  }catch(e){}
+}
+function newCode(){const a='abcdefghjkmnpqrstuvwxyz23456789',b=new Uint8Array(10);crypto.getRandomValues(b);return Array.from(b,x=>a[x%a.length]).join('')}
+
+/* ---------- navigation entre écrans ---------- */
+const SCREENS=['setup','home','radar','photo','timer','hist','sets'];
+let cur='home';
+function show(id){
+  cur=id;SCREENS.forEach(s=>$(s).classList.toggle('hide',s!==id));
+  if(id!=='radar')stopRadar();
+  if(id==='home')setTimeout(()=>{if(map)map.invalidateSize();drawMap()},50);
+  if(id==='radar')startRadar();
+  if(id==='photo')fillPhoto();
+  if(id==='timer')fillTimer();
+  if(id==='hist')fillHist();
+  if(id==='sets')fillSets();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>show('home'));
+
+/* ---------- carte ---------- */
+let map=null,marker=null;
+function initMap(){
+  if(map||!window.L||!window.L.map)return;
+  try{
+    map=window.L.map('map',{zoomControl:false,attributionControl:true}).setView([46.6,2.4],5);
+    window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  }catch(e){map=null}
+}
+function drawMap(){
+  if(!map){initMap();if(!map)return}
+  if(marker){map.removeLayer(marker);marker=null}
   if(spot){
-    $('pos').textContent=spot.lat.toFixed(5)+', '+spot.lon.toFixed(5);
-    $('meta').textContent='Garée par '+spot.by+' · '+new Date(spot.ts).toLocaleString('fr-FR')+(spot.acc?' · précision ±'+Math.round(spot.acc)+' m':'');
-    $('go').classList.remove('hide');
+    marker=window.L.marker([spot.lat,spot.lon],{icon:window.L.divIcon({className:'',html:'<div class="pin">P</div>',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(map);
+    marker.bindPopup('<b>Ma voiture</b><br>Garée le '+fmtDate(spot.ts)).openPopup();
+    map.setView([spot.lat,spot.lon],17);
   }
-  $('tkcard').classList.toggle('hide',!spot);
-  const run=!!(spot&&spot.tk);
-  $('tkform').classList.toggle('hide',run);
-  $('tkrun').classList.toggle('hide',!run);
-  if(spot&&!run&&!$('tkstart').value)$('tkstart').value=localISO(new Date());
+}
+
+/* ---------- rendu accueil ---------- */
+function render(){
+  const ready=S.get('code')&&S.get('name');
+  if(!ready){show('setup');return}
+  if(cur==='setup')show('home');
+  $('hero').textContent=spot?'Voiture garée par '+spot.by:'Gare-toi. Retrouve-la.';
+  ['tRadar','tUnpark','tPhoto','tGo','tShare','tTimer'].forEach(id=>$(id).style.opacity=spot?1:.45);
+  if(cur==='home')drawMap();
+  if(cur==='photo')fillPhoto();
+  if(cur==='timer')fillTimer();
   tick();
 }
-function localISO(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
-const hm=t=>new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,0.35,0.7].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.3,a.currentTime+t);o.start(a.currentTime+t);o.stop(a.currentTime+t+.2)})}catch(e){}}
+
+/* ---------- se garer ---------- */
+function needSpot(){if(!spot){toast('Enregistre d\'abord où tu te gares : bouton « Je me gare ici ».');return false}return true}
+$('park').onclick=()=>{
+  $('park').textContent='Localisation…';
+  navigator.geolocation.getCurrentPosition(async p=>{
+    const now=Date.now();
+    spot={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,ts:now,uts:now,by:S.get('name'),note:''};
+    photo=null;S.del('photo');saveLocal();
+    const h=J('hist')||[];h.unshift({lat:spot.lat,lon:spot.lon,ts:now,by:spot.by});S.set('hist',JSON.stringify(h.slice(0,20)));
+    $('park').textContent='✅ Enregistré !';
+    render();await push();try{await put('photo',null)}catch(e){}
+    setTimeout(()=>$('park').textContent='📍 Je me gare ici',2000);
+  },()=>{$('park').textContent='📍 Je me gare ici';toast('Position impossible. Réglages iPhone > Confidentialité > Service de localisation.')},
+  {enableHighAccuracy:true,timeout:15000,maximumAge:0});
+};
+$('tUnpark').onclick=async()=>{
+  if(!needSpot())return;
+  if(!confirm('Tu reprends la voiture ? La position, la photo et le ticket seront effacés pour vous deux.'))return;
+  const now=Date.now();spot=null;photo=null;S.del('spot');S.del('photo');luts=now;S.set('luts',String(now));render();
+  try{await put('spot',{gone:true,uts:now});await put('photo',null)}catch(e){toast('Effacé ici, envoi à l\'autre échoué')}
+};
+$('tGo').onclick=()=>{if(!needSpot())return;location.href='https://maps.apple.com/?daddr='+spot.lat+','+spot.lon+'&dirflg=w'};
+$('tShare').onclick=async()=>{
+  if(!needSpot())return;
+  const data={title:'Ma voiture',text:'Ma voiture est garée ici :',url:mapsPin(spot)};
+  try{if(navigator.share){await navigator.share(data)}else{await navigator.clipboard.writeText(data.url);toast('Lien copié')}}catch(e){}
+};
+$('tRadar').onclick=()=>{if(needSpot())show('radar')};
+$('tPhoto').onclick=()=>{if(needSpot())show('photo')};
+$('tTimer').onclick=()=>{if(needSpot())show('timer')};
+$('tHist').onclick=()=>show('hist');
+$('tSet').onclick=()=>show('sets');
+
+/* ---------- radar ---------- */
+let watchId=null,rTimer=null,here=null,heading=null;
+const rad=x=>x*Math.PI/180,deg=x=>x*180/Math.PI;
+function dist(a,b,c,d){const R=6371000,dl=rad(c-a),dn=rad(d-b),x=Math.sin(dl/2)**2+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+function bearing(a,b,c,d){const y=Math.sin(rad(d-b))*Math.cos(rad(c)),x=Math.cos(rad(a))*Math.sin(rad(c))-Math.sin(rad(a))*Math.cos(rad(c))*Math.cos(rad(d-b));return(deg(Math.atan2(y,x))+360)%360}
+const card=b=>['N','NE','E','SE','S','SO','O','NO'][Math.round(b/45)%8];
+function dms(v,pos,neg){const s=v>=0?pos:neg;v=Math.abs(v);const d=Math.floor(v),m=Math.floor((v-d)*60),sec=Math.round(((v-d)*60-m)*60);return d+'°'+p2(m)+"'"+p2(sec)+'"'+s}
+function onOri(e){
+  if(typeof e.webkitCompassHeading==='number')heading=e.webkitCompassHeading;
+  else if(e.absolute&&e.alpha!=null)heading=(360-e.alpha)%360;
+}
+function startRadar(){
+  if(!spot)return;
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(s=>{if(s==='granted')window.addEventListener('deviceorientation',onOri,true)}).catch(()=>{});
+  }else{window.addEventListener('deviceorientationabsolute',onOri,true);window.addEventListener('deviceorientation',onOri,true)}
+  watchId=navigator.geolocation.watchPosition(p=>{here=p.coords;drawRadar()},()=>{$('rnote').textContent='GPS indisponible : vérifie l\'autorisation de localisation.'},{enableHighAccuracy:true,maximumAge:1000});
+  rTimer=setInterval(drawRadar,1000);drawRadar();
+}
+function stopRadar(){
+  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}
+  if(rTimer){clearInterval(rTimer);rTimer=null}
+  window.removeEventListener('deviceorientation',onOri,true);window.removeEventListener('deviceorientationabsolute',onOri,true);
+  heading=null;
+}
+function drawRadar(){
+  if(!spot)return;
+  $('rdate').textContent=new Date().toLocaleString('fr-FR');
+  const s=Math.floor((Date.now()-spot.ts)/1000);
+  $('rpark').textContent=p2(Math.floor(s/3600))+':'+p2(Math.floor(s%3600/60))+':'+p2(s%60);
+  if(!here){$('rdist').textContent='…';return}
+  const d=dist(here.latitude,here.longitude,spot.lat,spot.lon),b=bearing(here.latitude,here.longitude,spot.lat,spot.lon);
+  $('rdist').textContent=d<1000?Math.round(d)+' m':(d/1000).toFixed(2).replace('.',',')+' km';
+  $('rdir').textContent='Direction : '+Math.round(b)+'° '+card(b);
+  $('rcoord').textContent=dms(here.latitude,'N','S')+', '+dms(here.longitude,'E','O');
+  $('ralt').textContent='Altitude : '+(here.altitude!=null?Math.round(here.altitude)+' m':'--');
+  $('rspeed').textContent=here.speed>0?Math.round(here.speed*3.6):0;
+  const R=Math.min(135,30+Math.log10(d+1)*35);
+  $('rline').setAttribute('y2',150-R);$('rdot').setAttribute('cy',150-R);$('rp').setAttribute('y',150-R+7);
+  const ang=b-(heading==null?0:heading);
+  $('rarrow').setAttribute('transform','rotate('+ang+' 150 150)');
+  $('rnote').textContent=heading==null?'Boussole non autorisée : le haut de l\'écran = le Nord.':'Marche dans la direction du P : le haut de l\'écran est devant toi.';
+}
+
+/* ---------- photo & notes ---------- */
+function fillPhoto(){
+  const has=photo&&photo.d&&spot&&spot.pts;
+  $('pimg').classList.toggle('hide',!has);$('pnone').classList.toggle('hide',!!has);
+  if(has)$('pimg').src=photo.d;
+  $('pbtn').textContent=has?'📷 Changer la photo':'📷 Prendre une photo';
+  if(document.activeElement!==$('note'))$('note').value=(spot&&spot.note)||'';
+}
+function shrink(file){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const m=900,k=Math.min(1,m/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.65))};img.onerror=rej;img.src=URL.createObjectURL(file)})}
+$('pbtn').onclick=()=>$('pfile').click();
+$('pfile').onchange=async e=>{
+  const f=e.target.files[0];if(!f||!spot)return;
+  try{
+    const d=await shrink(f),ts=Date.now();
+    photo={d,ts};S.set('photo',JSON.stringify(photo));
+    spot.pts=ts;spot.uts=ts;saveLocal();fillPhoto();
+    await put('photo',photo);await put('spot',spot);toast('Photo enregistrée');
+  }catch(err){toast('Photo gardée ici, envoi à l\'autre échoué')}
+  e.target.value='';
+};
+$('nsave').onclick=async()=>{
+  if(!spot)return;
+  spot.note=$('note').value.trim();spot.uts=Date.now();saveLocal();
+  await push();show('home');
+};
+
+/* ---------- parcmètre ---------- */
+function localISO(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes())}
+function fillTimer(){
+  const run=!!(spot&&spot.tk);
+  $('tkform').classList.toggle('hide',run);$('tkrun').classList.toggle('hide',!run);
+  if(!run&&!$('tkstart').value)$('tkstart').value=localISO(new Date());
+  tick();
+}
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
+  const sv=$('tkstart').value;if(!sv)return;
+  const e=new Date(new Date(sv).getTime()+Number(b.dataset.add)*60000);
+  $('tkend').value=p2(e.getHours())+':'+p2(e.getMinutes());
+});
+function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,.35,.7].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.3,a.currentTime+t);o.start(a.currentTime+t);o.stop(a.currentTime+t+.2)})}catch(e){}}
 function tick(){
-  if(!spot||!spot.tk){$('tkbanner').classList.add('hide');return}
-  const rem=spot.tk.e-Date.now(),el=$('tkclock');
-  const p=n=>String(n).padStart(2,'0');
-  $('tkinfo').textContent='Ticket de '+hm(spot.tk.s)+' à '+hm(spot.tk.e);
+  const tk=spot&&spot.tk,b=$('banner'),tx=$('tTimerTxt');
+  if(!tk){b.classList.add('hide');tx.textContent='Parcmètre & alarme';return}
+  const rem=tk.e-Date.now(),el=$('tkclock');
+  $('tkinfo').textContent='Ticket de '+hm(tk.s)+' à '+hm(tk.e);
   if(rem>0){
-    const s=Math.floor(rem/1000);
-    el.textContent=p(Math.floor(s/3600))+':'+p(Math.floor(s%3600/60))+':'+p(s%60);
-    el.className=rem<=600000?'warn':'';
-    $('tkbanner').classList.toggle('hide',rem>600000);
-    $('tkbanner').textContent='⚠️ Plus que '+Math.ceil(rem/60000)+' min sur le ticket !';
-    if(rem<=600000&&L.get('warned')!==String(spot.tk.e)){L.set('warned',String(spot.tk.e));beep();}
+    const s=Math.floor(rem/1000),txt=p2(Math.floor(s/3600))+':'+p2(Math.floor(s%3600/60))+':'+p2(s%60);
+    el.textContent=txt;el.className=rem<=600000?'warn':'';
+    tx.textContent='Ticket : '+txt;
+    b.classList.toggle('hide',rem>600000);b.classList.remove('bad');
+    b.textContent='⚠️ Plus que '+Math.ceil(rem/60000)+' min sur le ticket !';
+    if(rem<=600000&&S.get('warned')!==String(tk.e)){S.set('warned',String(tk.e));beep()}
   }else{
-    const s=Math.floor(-rem/1000);
-    el.textContent='Expiré depuis '+Math.floor(s/60)+' min';
-    el.className='bad';
-    $('tkbanner').classList.remove('hide');
-    $('tkbanner').textContent='🚨 Ticket expiré !';
+    const m=Math.floor(-rem/60000);
+    el.textContent='Expiré depuis '+m+' min';el.className='bad';
+    tx.textContent='Ticket expiré !';
+    b.classList.remove('hide');b.classList.add('bad');b.textContent='🚨 Ticket expiré !';
   }
 }
 setInterval(tick,1000);
-function utc(t){return new Date(t).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}
+const utc=t=>new Date(t).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
 function addToCalendar(){
   if(!spot||!spot.tk)return;
-  const e=spot.tk.e,maps='https://maps.apple.com/?daddr='+spot.lat+','+spot.lon;
+  const e=spot.tk.e;
   const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ma Caisse//FR','BEGIN:VEVENT',
    'UID:macaisse-'+e+'@macaisse','DTSTAMP:'+utc(Date.now()),'DTSTART:'+utc(e),'DTEND:'+utc(e+15*60000),
-   'SUMMARY:🅿️ Ticket parcmètre expiré','DESCRIPTION:Voiture : '+maps,
+   'SUMMARY:🅿️ Ticket parcmètre expiré','DESCRIPTION:Voiture : '+mapsPin(spot),
    'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Ticket parcmètre : 10 min restantes','TRIGGER:-PT10M','END:VALARM',
    'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Ticket parcmètre expiré','TRIGGER:PT0M','END:VALARM',
    'END:VEVENT','END:VCALENDAR'].join('\r\n');
@@ -139,78 +406,58 @@ function addToCalendar(){
 }
 $('tkgo').onclick=async()=>{
   const sv=$('tkstart').value,ev=$('tkend').value;
-  if(!sv||!ev){alert('Renseigne la date/heure du ticket et l\'heure de fin.');return}
+  if(!sv||!ev){toast('Renseigne la date/heure du ticket et l\'heure de fin.');return}
   const s=new Date(sv).getTime(),d=new Date(sv),[h,m]=ev.split(':').map(Number);
   d.setHours(h,m,0,0);let e=d.getTime();if(e<=s)e+=864e5;
-  spot.tk={s,e};spot.uts=Date.now();
-  L.set('spot',JSON.stringify(spot));render();await push();
+  spot.tk={s,e};spot.uts=Date.now();saveLocal();render();await push();
   if(confirm('Compte à rebours lancé. Ajouter l\'alarme (10 min avant) au calendrier ?'))addToCalendar();
 };
 $('tkcal').onclick=addToCalendar;
 $('tkdel').onclick=async()=>{
   if(!confirm('Supprimer le ticket ?'))return;
-  delete spot.tk;spot.uts=Date.now();$('tkstart').value='';
-  L.set('spot',JSON.stringify(spot));render();await push();
+  delete spot.tk;spot.uts=Date.now();$('tkstart').value='';saveLocal();render();await push();
 };
 
-async function push(){
-  const c=L.get('code'); if(!c||!spot)return;
-  try{
-    const r=await fetch(url(c),{method:'PUT',body:JSON.stringify(spot)});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-  }catch(e){alert('Position enregistrée sur ce téléphone, mais envoi à l\'autre échoué : '+e.message);}
-}
-async function pull(){
-  const c=L.get('code'); if(!c)return;
-  try{
-    const r=await fetch(url(c),{cache:'no-store'});
-    if(!r.ok)return;
-    const d=await r.json();
-    if(d&&d.lat&&(!spot||(d.uts||d.ts)>(spot.uts||spot.ts))){spot=d;L.set('spot',JSON.stringify(d));render();}
-  }catch(e){}
-}
-function newCode(){
-  const a='abcdefghjkmnpqrstuvwxyz23456789',b=new Uint8Array(10);
-  crypto.getRandomValues(b);
-  return Array.from(b,x=>a[x%a.length]).join('');
+/* ---------- historique ---------- */
+function fillHist(){
+  const h=J('hist')||[],box=$('hlist');box.innerHTML='';
+  if(!h.length){box.innerHTML='<div class="mut">Rien pour l\'instant.</div>';return}
+  h.forEach(x=>{
+    const b=document.createElement('button');b.className='row';
+    b.textContent=fmtDate(x.ts)+' · '+x.by+' · '+x.lat.toFixed(4)+', '+x.lon.toFixed(4);
+    b.onclick=()=>{location.href=mapsPin(x)};box.appendChild(b);
+  });
 }
 
-$('park').onclick=()=>{
-  $('park').textContent='Localisation…';
-  navigator.geolocation.getCurrentPosition(async p=>{
-    spot={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,ts:Date.now(),uts:Date.now(),by:L.get('name')};
-    $('tkstart').value='';
-    L.set('spot',JSON.stringify(spot));
-    $('park').textContent='✅ Enregistré !';
-    render(); await push();
-    setTimeout(()=>$('park').textContent='📍 Je me gare ici',2000);
-  },()=>{$('park').textContent='📍 Je me gare ici';alert('Impossible d\'avoir la position. Réglages > Confidentialité > Service de localisation > Safari/Ma Caisse.');},
-  {enableHighAccuracy:true,timeout:15000,maximumAge:0});
-};
+/* ---------- réglages ---------- */
+function fillSets(){
+  $('mycode').textContent=S.get('code')||'';$('sname').textContent=S.get('name')||'';
+  const g=$('gps');g.textContent='…';
+  if(navigator.permissions&&navigator.permissions.query){
+    navigator.permissions.query({name:'geolocation'}).then(r=>{g.textContent=r.state==='granted'?'activée ✅':r.state==='denied'?'refusée ❌':'à autoriser'}).catch(()=>g.textContent='inconnue');
+  }else g.textContent='inconnue';
+}
+$('reset').onclick=()=>{if(confirm('Tout effacer sur ce téléphone ?')){try{localStorage.clear()}catch(e){}location.reload()}};
 
-$('go').onclick=()=>{
-  if(!spot)return;
-  location.href='https://maps.apple.com/?daddr='+spot.lat+','+spot.lon+'&dirflg=d';
-};
-
-function needName(){const n=$('name').value.trim();if(!n){$('err').textContent='Entre ton prénom.';return null}L.set('name',n);return n}
-
-$('create').onclick=()=>{
-  if(!needName())return;
-  L.set('code',newCode()); render();
-};
+/* ---------- configuration ---------- */
+function needName(){const n=$('name').value.trim();if(!n){$('err').textContent='Entre ton prénom.';return null}S.set('name',n);return n}
+$('create').onclick=()=>{if(!needName())return;S.set('code',newCode());S.set('v2','1');show('home');render()};
 $('join').onclick=()=>{
   if(!needName())return;
   const c=$('code').value.trim().toLowerCase();
   if(!c){$('err').textContent='Entre le code.';return}
-  L.set('code',c); render(); pull();
+  S.set('code',c);S.set('v2','1');show('home');render();pull();
 };
-$('reset').onclick=()=>{if(confirm('Tout effacer sur ce téléphone ?')){try{localStorage.clear()}catch(e){}spot=null;location.reload();}};
 
+/* ---------- démarrage ---------- */
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)pull()});
 setInterval(pull,20000);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
-render();pull();
+(async()=>{
+  // migration depuis l'ancienne version : on republie une fois la position locale au nouveau format
+  if(S.get('code')&&!S.get('v2')){S.set('v2','1');if(spot&&spot.lat){spot.uts=spot.uts||spot.ts;await push()}}
+  show(S.get('code')&&S.get('name')?'home':'setup');render();pull();
+})();
 </script>
 </body>
 </html>
