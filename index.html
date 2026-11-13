@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ma Caisse">
+<meta name="theme-color" content="#0d0f14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Ma Caisse</title>
+<style>
+:root{--bg:#0d0f14;--card:#171a22;--txt:#f2f4f8;--mut:#8b93a7;--acc:#ff5a1f;--ok:#2ecc71}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,system-ui,sans-serif;min-height:100vh;padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16px);display:flex;flex-direction:column;gap:14px}
+h1{font-size:22px;margin:18px 0 0}
+.card{background:var(--card);border-radius:20px;padding:18px}
+.mut{color:var(--mut);font-size:14px}
+.big{width:100%;border:0;border-radius:22px;padding:26px 16px;font-size:22px;font-weight:700;color:#fff;background:var(--acc)}
+.big:active{transform:scale(.98)}
+.go{background:var(--ok);color:#06210f}
+.sec{width:100%;border:1px solid #2a2f3d;background:transparent;color:var(--txt);border-radius:14px;padding:14px;font-size:16px;margin-top:10px}
+input{width:100%;padding:14px;border-radius:12px;border:1px solid #2a2f3d;background:#0d0f14;color:var(--txt);font-size:16px;margin-top:8px}
+.hide{display:none}
+#pos{font-size:18px;font-weight:600}
+code{background:#0d0f14;padding:3px 8px;border-radius:8px;font-size:15px;user-select:all}
+</style>
+</head>
+<body>
+<h1>🚗 Ma Caisse</h1>
+
+<div id="setup" class="card hide">
+  <b>Première configuration</b>
+  <p class="mut">Ton prénom (affiché à l'autre) :</p>
+  <input id="name" placeholder="Stéphane" autocomplete="off">
+  <button class="sec" id="create">Créer le partage (1er téléphone)</button>
+  <p class="mut">Ou, si ton pote a déjà créé le partage, entre son code :</p>
+  <input id="code" placeholder="Code de partage" autocomplete="off" autocapitalize="off">
+  <button class="sec" id="join">Rejoindre avec ce code</button>
+  <p class="mut" id="err" style="color:#ff7a7a"></p>
+</div>
+
+<div id="main" class="hide">
+  <button class="big" id="park">📍 Je me gare ici</button>
+  <div class="card" style="margin-top:14px">
+    <div class="mut">Dernière position enregistrée</div>
+    <div id="pos">Aucune pour l'instant</div>
+    <div class="mut" id="meta"></div>
+  </div>
+  <button class="big go hide" id="go">🧭 Y aller (itinéraire)</button>
+  <div class="card">
+    <div class="mut">Code de partage à donner à ton pote :</div>
+    <p><code id="mycode"></code></p>
+    <button class="sec" id="reset">Réinitialiser l'appli</button>
+  </div>
+</div>
+
+<script>
+const API='https://jsonblob.com/api/jsonBlob';
+const $=id=>document.getElementById(id);
+const L={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+let spot=JSON.parse(L.get('spot')||'null');
+
+function render(){
+  const ready=L.get('code')&&L.get('name');
+  $('setup').classList.toggle('hide',!!ready);
+  $('main').classList.toggle('hide',!ready);
+  if(!ready)return;
+  $('mycode').textContent=L.get('code');
+  if(spot){
+    $('pos').textContent=spot.lat.toFixed(5)+', '+spot.lon.toFixed(5);
+    $('meta').textContent='Garée par '+spot.by+' · '+new Date(spot.ts).toLocaleString('fr-FR')+(spot.acc?' · précision ±'+Math.round(spot.acc)+' m':'');
+    $('go').classList.remove('hide');
+  }
+}
+
+async function push(){
+  const c=L.get('code'); if(!c)return;
+  try{await fetch(API+'/'+c,{method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(spot||{})});}catch(e){}
+}
+async function pull(){
+  const c=L.get('code'); if(!c)return;
+  try{
+    const r=await fetch(API+'/'+c,{headers:{'Accept':'application/json'},cache:'no-store'});
+    if(!r.ok)return;
+    const d=await r.json();
+    if(d&&d.lat&&(!spot||d.ts>spot.ts)){spot=d;L.set('spot',JSON.stringify(d));render();}
+  }catch(e){}
+}
+
+$('park').onclick=()=>{
+  $('park').textContent='Localisation…';
+  navigator.geolocation.getCurrentPosition(async p=>{
+    spot={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,ts:Date.now(),by:L.get('name')};
+    L.set('spot',JSON.stringify(spot));
+    $('park').textContent='✅ Enregistré !';
+    render(); await push();
+    setTimeout(()=>$('park').textContent='📍 Je me gare ici',2000);
+  },()=>{$('park').textContent='📍 Je me gare ici';alert('Impossible d\'avoir la position. Réglages > Confidentialité > Service de localisation > Safari/Ma Caisse.');},
+  {enableHighAccuracy:true,timeout:15000,maximumAge:0});
+};
+
+$('go').onclick=()=>{
+  if(!spot)return;
+  location.href='https://maps.apple.com/?daddr='+spot.lat+','+spot.lon+'&dirflg=d';
+};
+
+function needName(){const n=$('name').value.trim();if(!n){$('err').textContent='Entre ton prénom.';return null}L.set('name',n);return n}
+
+$('create').onclick=async()=>{
+  if(!needName())return; $('err').textContent='Création…';
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:'{}'});
+    const loc=r.headers.get('Location')||r.headers.get('X-jsonblob');
+    if(!loc)throw new Error('Identifiant illisible');
+    L.set('code',loc.split('/').pop()); render();
+  }catch(e){$('err').textContent='Échec de la création : '+e.message;}
+};
+$('join').onclick=()=>{
+  if(!needName())return;
+  const c=$('code').value.trim();
+  if(!c){$('err').textContent='Entre le code.';return}
+  L.set('code',c); render(); pull();
+};
+$('reset').onclick=()=>{if(confirm('Tout effacer sur ce téléphone ?')){try{localStorage.clear()}catch(e){}spot=null;location.reload();}};
+
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pull()});
+setInterval(pull,20000);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+render();pull();
+</script>
+</body>
+</html>
