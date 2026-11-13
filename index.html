@@ -25,6 +25,9 @@ input{width:100%;padding:14px;border-radius:12px;border:1px solid #2a2f3d;backgr
 .hide{display:none}
 #pos{font-size:18px;font-weight:600}
 code{background:#0d0f14;padding:3px 8px;border-radius:8px;font-size:15px;user-select:all}
+#tkclock{font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;margin:8px 0}
+.warn{color:#ffb020}.bad{color:#ff5a5a}
+#tkbanner{background:#ffb020;color:#201400;border-radius:14px;padding:14px;font-weight:700;text-align:center}
 </style>
 </head>
 <body>
@@ -49,6 +52,23 @@ code{background:#0d0f14;padding:3px 8px;border-radius:8px;font-size:15px;user-se
     <div class="mut" id="meta"></div>
   </div>
   <button class="big go hide" id="go">🧭 Y aller (itinéraire)</button>
+  <div id="tkbanner" class="hide">⚠️ Plus que 10 minutes sur le ticket !</div>
+  <div class="card hide" id="tkcard">
+    <b>🅿️ Parcmètre</b>
+    <div id="tkform">
+      <p class="mut">Ticket pris le (date et heure) :</p>
+      <input type="datetime-local" id="tkstart">
+      <p class="mut">Valable jusqu'à (heure) :</p>
+      <input type="time" id="tkend">
+      <button class="sec" id="tkgo">⏱ Lancer le compte à rebours</button>
+    </div>
+    <div id="tkrun" class="hide">
+      <div id="tkclock">--:--:--</div>
+      <div class="mut" id="tkinfo"></div>
+      <button class="sec" id="tkcal">🔔 Ajouter l'alarme (10 min avant) au calendrier</button>
+      <button class="sec" id="tkdel">Supprimer le ticket</button>
+    </div>
+  </div>
   <div class="card">
     <div class="mut">Code de partage à donner à ton pote :</div>
     <p><code id="mycode"></code></p>
@@ -74,7 +94,64 @@ function render(){
     $('meta').textContent='Garée par '+spot.by+' · '+new Date(spot.ts).toLocaleString('fr-FR')+(spot.acc?' · précision ±'+Math.round(spot.acc)+' m':'');
     $('go').classList.remove('hide');
   }
+  $('tkcard').classList.toggle('hide',!spot);
+  const run=!!(spot&&spot.tk);
+  $('tkform').classList.toggle('hide',run);
+  $('tkrun').classList.toggle('hide',!run);
+  if(spot&&!run&&!$('tkstart').value)$('tkstart').value=localISO(new Date());
+  tick();
 }
+function localISO(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
+const hm=t=>new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,0.35,0.7].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.3,a.currentTime+t);o.start(a.currentTime+t);o.stop(a.currentTime+t+.2)})}catch(e){}}
+function tick(){
+  if(!spot||!spot.tk){$('tkbanner').classList.add('hide');return}
+  const rem=spot.tk.e-Date.now(),el=$('tkclock');
+  const p=n=>String(n).padStart(2,'0');
+  $('tkinfo').textContent='Ticket de '+hm(spot.tk.s)+' à '+hm(spot.tk.e);
+  if(rem>0){
+    const s=Math.floor(rem/1000);
+    el.textContent=p(Math.floor(s/3600))+':'+p(Math.floor(s%3600/60))+':'+p(s%60);
+    el.className=rem<=600000?'warn':'';
+    $('tkbanner').classList.toggle('hide',rem>600000);
+    $('tkbanner').textContent='⚠️ Plus que '+Math.ceil(rem/60000)+' min sur le ticket !';
+    if(rem<=600000&&L.get('warned')!==String(spot.tk.e)){L.set('warned',String(spot.tk.e));beep();}
+  }else{
+    const s=Math.floor(-rem/1000);
+    el.textContent='Expiré depuis '+Math.floor(s/60)+' min';
+    el.className='bad';
+    $('tkbanner').classList.remove('hide');
+    $('tkbanner').textContent='🚨 Ticket expiré !';
+  }
+}
+setInterval(tick,1000);
+function utc(t){return new Date(t).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}
+function addToCalendar(){
+  if(!spot||!spot.tk)return;
+  const e=spot.tk.e,maps='https://maps.apple.com/?daddr='+spot.lat+','+spot.lon;
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ma Caisse//FR','BEGIN:VEVENT',
+   'UID:macaisse-'+e+'@macaisse','DTSTAMP:'+utc(Date.now()),'DTSTART:'+utc(e),'DTEND:'+utc(e+15*60000),
+   'SUMMARY:🅿️ Ticket parcmètre expiré','DESCRIPTION:Voiture : '+maps,
+   'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Ticket parcmètre : 10 min restantes','TRIGGER:-PT10M','END:VALARM',
+   'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Ticket parcmètre expiré','TRIGGER:PT0M','END:VALARM',
+   'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  location.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));
+}
+$('tkgo').onclick=async()=>{
+  const sv=$('tkstart').value,ev=$('tkend').value;
+  if(!sv||!ev){alert('Renseigne la date/heure du ticket et l\'heure de fin.');return}
+  const s=new Date(sv).getTime(),d=new Date(sv),[h,m]=ev.split(':').map(Number);
+  d.setHours(h,m,0,0);let e=d.getTime();if(e<=s)e+=864e5;
+  spot.tk={s,e};spot.uts=Date.now();
+  L.set('spot',JSON.stringify(spot));render();await push();
+  if(confirm('Compte à rebours lancé. Ajouter l\'alarme (10 min avant) au calendrier ?'))addToCalendar();
+};
+$('tkcal').onclick=addToCalendar;
+$('tkdel').onclick=async()=>{
+  if(!confirm('Supprimer le ticket ?'))return;
+  delete spot.tk;spot.uts=Date.now();$('tkstart').value='';
+  L.set('spot',JSON.stringify(spot));render();await push();
+};
 
 async function push(){
   const c=L.get('code'); if(!c||!spot)return;
@@ -89,7 +166,7 @@ async function pull(){
     const r=await fetch(url(c),{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
-    if(d&&d.lat&&(!spot||d.ts>spot.ts)){spot=d;L.set('spot',JSON.stringify(d));render();}
+    if(d&&d.lat&&(!spot||(d.uts||d.ts)>(spot.uts||spot.ts))){spot=d;L.set('spot',JSON.stringify(d));render();}
   }catch(e){}
 }
 function newCode(){
@@ -101,7 +178,8 @@ function newCode(){
 $('park').onclick=()=>{
   $('park').textContent='Localisation…';
   navigator.geolocation.getCurrentPosition(async p=>{
-    spot={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,ts:Date.now(),by:L.get('name')};
+    spot={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,ts:Date.now(),uts:Date.now(),by:L.get('name')};
+    $('tkstart').value='';
     L.set('spot',JSON.stringify(spot));
     $('park').textContent='✅ Enregistré !';
     render(); await push();
