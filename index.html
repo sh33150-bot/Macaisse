@@ -57,7 +57,8 @@ code{background:#0d0f14;padding:3px 8px;border-radius:8px;font-size:15px;user-se
 </div>
 
 <script>
-const API='https://jsonblob.com/api/jsonBlob';
+const DB='https://findmycaisse-default-rtdb.europe-west1.firebasedatabase.app';
+const url=c=>DB+'/s/'+encodeURIComponent(c)+'.json';
 const $=id=>document.getElementById(id);
 const L={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
 let spot=JSON.parse(L.get('spot')||'null');
@@ -76,17 +77,25 @@ function render(){
 }
 
 async function push(){
-  const c=L.get('code'); if(!c)return;
-  try{await fetch(API+'/'+c,{method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(spot||{})});}catch(e){}
+  const c=L.get('code'); if(!c||!spot)return;
+  try{
+    const r=await fetch(url(c),{method:'PUT',body:JSON.stringify(spot)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+  }catch(e){alert('Position enregistrée sur ce téléphone, mais envoi à l\'autre échoué : '+e.message);}
 }
 async function pull(){
   const c=L.get('code'); if(!c)return;
   try{
-    const r=await fetch(API+'/'+c,{headers:{'Accept':'application/json'},cache:'no-store'});
+    const r=await fetch(url(c),{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
     if(d&&d.lat&&(!spot||d.ts>spot.ts)){spot=d;L.set('spot',JSON.stringify(d));render();}
   }catch(e){}
+}
+function newCode(){
+  const a='abcdefghjkmnpqrstuvwxyz23456789',b=new Uint8Array(10);
+  crypto.getRandomValues(b);
+  return Array.from(b,x=>a[x%a.length]).join('');
 }
 
 $('park').onclick=()=>{
@@ -108,18 +117,13 @@ $('go').onclick=()=>{
 
 function needName(){const n=$('name').value.trim();if(!n){$('err').textContent='Entre ton prénom.';return null}L.set('name',n);return n}
 
-$('create').onclick=async()=>{
-  if(!needName())return; $('err').textContent='Création…';
-  try{
-    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:'{}'});
-    const loc=r.headers.get('Location')||r.headers.get('X-jsonblob');
-    if(!loc)throw new Error('Identifiant illisible');
-    L.set('code',loc.split('/').pop()); render();
-  }catch(e){$('err').textContent='Échec de la création : '+e.message;}
+$('create').onclick=()=>{
+  if(!needName())return;
+  L.set('code',newCode()); render();
 };
 $('join').onclick=()=>{
   if(!needName())return;
-  const c=$('code').value.trim();
+  const c=$('code').value.trim().toLowerCase();
   if(!c){$('err').textContent='Entre le code.';return}
   L.set('code',c); render(); pull();
 };
